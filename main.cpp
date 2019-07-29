@@ -58,6 +58,28 @@ int checkfield()
 	return 0;
 }
 
+void printfield(){
+
+	//some nice output
+	printf("-------------------------\n");
+	for (int i = 0; i < 9; ++i)
+	{
+		if(!(i%3) && i)
+			printf("--------+-------+--------\n");
+		printf("|");
+		for (int j = 0; j < 9; ++j)
+		{
+			if(!(j%3) && j)
+				printf(" | ");
+			else
+				printf(" ");
+			printf("%zu",sudoku[i][j].num);
+		}
+		std::cout << " |"  << std::endl;
+	}
+	printf("-------------------------\n");
+}
+
 int main()
 {
 	//source: https://www.telegraph.co.uk/news/science/science-news/9359579/Worlds-hardest-sudoku-can-you-crack-it.html
@@ -66,13 +88,13 @@ int main()
 			{0, 0, 3, 6, 0, 0, 0, 0, 0},
 			{0, 7, 0, 0, 9, 0, 2, 0, 0},
 
-			{0, 5, 0, 0, 0, 7, 0, 0, 0},
+			{0, 5, 0, 0, 0, 7, 0, 2, 0},
 			{0, 0, 0, 0, 4, 5, 7, 0, 0},
 			{0, 0, 0, 1, 0, 0, 0, 3, 0},
 
-			{0, 0, 1, 0, 0, 0, 0, 6, 8},
-			{0, 0, 8, 5, 0, 0, 0, 1, 0},
-			{0, 9, 0, 0, 0, 0, 4, 0, 0}
+			{0, 0, 1, 0, 0, 0, 0, 0, 8},
+			{0, 0, 8, 5, 0, 0, 0, 0, 0},
+			{0, 9, 0, 2, 0, 0, 4, 0, 0}
 	};
 
 	//copy input
@@ -95,8 +117,35 @@ int main()
 
 	int field = 0;
 	int reverting = 0;
+	size_t solution = 0;
 
-	while(field <= 81){
+	while(1){
+
+		//finished with a solution
+		if(field >= 81)
+		{
+			solution++;
+			printf("Solution: %zu\n",solution);
+			printfield();
+			//start working on the last field again
+			while(1)
+			{
+				field--;
+				if(sudoku[field/9][field%9].fix)
+					continue;
+				if(sudoku[field/9][field%9].num + 1 > 9)
+				{
+					sudoku[field / 9][field % 9].num = 0;
+					continue;
+				}
+				sudoku[field/9][field%9].num++;
+				break;
+			}
+		}
+
+		//no more solutions
+		if(field < 0)
+			break;
 
 		//jump over fix fields
 		if(!reverting)
@@ -140,26 +189,9 @@ int main()
 			field++;
 			reverting = 0;
 		}
+
 	}
 
-	//some nice output
-	printf("-------------------------\n");
-	for (int i = 0; i < 9; ++i)
-	{
-		if(!(i%3) && i)
-			printf("--------+-------+--------\n");
-		printf("|");
-		for (int j = 0; j < 9; ++j)
-		{
-			if(!(j%3) && j)
-				printf(" | ");
-			else
-				printf(" ");
-			printf("%zu",sudoku[i][j].num);
-		}
-		std::cout << " |"  << std::endl;
-	}
-	printf("-------------------------\n");
-
+	printf("Finished, Solutions found: %zu\n", solution);
 	return 0;
 }
