@@ -1,5 +1,7 @@
 #include <iostream>
 
+#define visualize
+
 struct field
 {
 	//number for the field
@@ -98,7 +100,6 @@ int checkfield(int field)
 
 void printfield()
 {
-
 	//some nice output
 	printf("-------------------------\n");
 	for (int i = 0; i < 9; ++i)
@@ -122,7 +123,7 @@ void printfield()
 int main()
 {
 	//should produce 2208 solutions
-	int input[9][9] = {
+/*	int input[9][9] = {
 			{0, 0, 0, 7, 0, 0, 0, 0, 0},
 			{1, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 4, 3, 0, 2, 7, 0},
@@ -134,7 +135,7 @@ int main()
 			{0, 0, 0, 0, 8, 1, 0, 0, 4},
 			{0, 0, 2, 0, 0, 0, 0, 5, 0},
 			{0, 4, 0, 0, 0, 0, 0, 0, 0}
-	};
+	};*/
 
 	//hard to brute force
 /*	int input[9][9] = {
@@ -151,7 +152,22 @@ int main()
 			{0, 0, 0, 0, 4, 0, 0, 0, 9}
 	};*/
 
+	//wiki example 24 solutions
 /*	int input[9][9] = {
+			{5, 3, 0, 0, 7, 0, 0, 0, 0},
+			{6, 0, 0, 1, 9, 5, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 6, 0},
+
+			{8, 0, 0, 0, 6, 0, 0, 0, 3},
+			{4, 0, 0, 8, 0, 3, 0, 0, 1},
+			{7, 0, 0, 0, 2, 0, 0, 0, 6},
+
+			{0, 6, 0, 0, 0, 0, 2, 8, 0},
+			{0, 0, 0, 4, 1, 9, 0, 0, 5},
+			{0, 0, 0, 0, 8, 0, 0, 7, 9}
+	};*/
+
+	int input[9][9] = {
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -163,7 +179,8 @@ int main()
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0}
-	};*/
+	};
+
 
 	//copy input
 	for (int x = 0; x < 9; ++x)
@@ -187,18 +204,25 @@ int main()
 	int reverting = 0;
 	size_t solution = 0;
 
+
 	while (1)
 	{
+#ifdef visualize
+		printfield();
+		printf("\033[13;A");
+		nanosleep((const struct timespec[]){{0L, 5000000L}}, NULL);
+#endif
 
 		//finished with a solution
 		if (field >= 81)
 		{
 			solution++;
-			printf("Solution: %zu\n", solution);
+			printf("Solution: %zu              \n", solution);
 			printfield();
-
-			if(solution >= 100000)
-				break;
+#ifdef visualize
+			getchar();
+			printf("\033[14;B");
+#endif
 
 			//start working on the last field again
 			while (1)
