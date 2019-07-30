@@ -1,5 +1,4 @@
 #include <iostream>
-#include <assert.h>
 
 struct field
 {
@@ -26,12 +25,12 @@ int checkfield()
 		{
 			if (row & (1 << sudoku[i][j].num))
 				return 1;
-			if(sudoku[i][j].num)
+			if (sudoku[i][j].num)
 				row |= (1 << sudoku[i][j].num);
 
 			if (col & (1 << sudoku[j][i].num))
 				return 1;
-			if(sudoku[j][i].num)
+			if (sudoku[j][i].num)
 				col |= (1 << sudoku[j][i].num);
 
 		}
@@ -46,10 +45,10 @@ int checkfield()
 			{
 				for (int l = 0; l < 3; ++l)
 				{
-					if (subfield & (1 << sudoku[i*3+k][j*3+l].num))
+					if (subfield & (1 << sudoku[i * 3 + k][j * 3 + l].num))
 						return 1;
-					if(sudoku[i*3+k][j*3+l].num)
-						subfield |= (1 << sudoku[i*3+k][j*3+l].num);
+					if (sudoku[i * 3 + k][j * 3 + l].num)
+						subfield |= (1 << sudoku[i * 3 + k][j * 3 + l].num);
 				}
 			}
 		}
@@ -58,44 +57,113 @@ int checkfield()
 	return 0;
 }
 
-void printfield(){
+int checkfield(int field)
+{
+	uint16_t row;
+	uint16_t col;
+
+	uint8_t x = field / 9;
+	uint8_t y = field % 9;
+
+	//current row/col
+	row = 0;
+	col = 0;
+	for (uint8_t j = 0; j < 9; ++j)
+	{
+		if (row & (1 << sudoku[x][j].num) & 0x3FE)	//exclude the zero
+			return 1;
+		row |= (1 << sudoku[x][j].num);
+
+		if (col & (1 << sudoku[j][y].num) & 0x3FE)
+			return 1;
+		col |= (1 << sudoku[j][y].num);
+
+	}
+
+	//the 3x3 fields
+	uint16_t subfield = 0;
+
+	for (uint8_t k = 0; k < 3; ++k)
+	{
+		for (uint8_t l = 0; l < 3; ++l)
+		{
+			if (subfield & (1 << sudoku[(x/3) * 3 + k][(y/3) * 3 + l].num) & 0x3FE)
+				return 1;
+			subfield |= (1 << sudoku[(x/3) * 3 + k][(y/3) * 3 + l].num);
+		}
+	}
+
+	return 0;
+}
+
+void printfield()
+{
 
 	//some nice output
 	printf("-------------------------\n");
 	for (int i = 0; i < 9; ++i)
 	{
-		if(!(i%3) && i)
+		if (!(i % 3) && i)
 			printf("--------+-------+--------\n");
 		printf("|");
 		for (int j = 0; j < 9; ++j)
 		{
-			if(!(j%3) && j)
+			if (!(j % 3) && j)
 				printf(" | ");
 			else
 				printf(" ");
-			printf("%zu",sudoku[i][j].num);
+			printf("%zu", sudoku[i][j].num);
 		}
-		std::cout << " |"  << std::endl;
+		std::cout << " |" << std::endl;
 	}
 	printf("-------------------------\n");
 }
 
 int main()
 {
-	//source: https://www.telegraph.co.uk/news/science/science-news/9359579/Worlds-hardest-sudoku-can-you-crack-it.html
+	//should produce 2208 solutions
 	int input[9][9] = {
-			{8, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 3, 6, 0, 0, 0, 0, 0},
-			{0, 7, 0, 0, 9, 0, 2, 0, 0},
+			{0, 0, 0, 7, 0, 0, 0, 0, 0},
+			{1, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 4, 3, 0, 2, 7, 0},
 
-			{0, 5, 0, 0, 0, 7, 0, 2, 0},
-			{0, 0, 0, 0, 4, 5, 7, 0, 0},
-			{0, 0, 0, 1, 0, 0, 0, 3, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 6},
+			{0, 0, 0, 5, 0, 9, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 4, 1, 8},
 
-			{0, 0, 1, 0, 0, 0, 0, 0, 8},
-			{0, 0, 8, 5, 0, 0, 0, 0, 0},
-			{0, 9, 0, 2, 0, 0, 4, 0, 0}
+			{0, 0, 0, 0, 8, 1, 0, 0, 4},
+			{0, 0, 2, 0, 0, 0, 0, 5, 0},
+			{0, 4, 0, 0, 0, 0, 0, 0, 0}
 	};
+
+	//hard to brute force
+/*	int input[9][9] = {
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 3, 0, 8, 5},
+			{0, 0, 1, 0, 2, 0, 0, 0, 0},
+
+			{0, 0, 0, 5, 0, 7, 0, 0, 0},
+			{0, 0, 4, 0, 0, 0, 1, 0, 0},
+			{0, 9, 0, 0, 0, 0, 0, 0, 0},
+
+			{5, 0, 0, 0, 0, 0, 0, 7, 3},
+			{0, 0, 2, 0, 1, 0, 0, 0, 0},
+			{0, 0, 0, 0, 4, 0, 0, 0, 9}
+	};*/
+
+/*	int input[9][9] = {
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0}
+	};*/
 
 	//copy input
 	for (int x = 0; x < 9; ++x)
@@ -119,73 +187,83 @@ int main()
 	int reverting = 0;
 	size_t solution = 0;
 
-	while(1){
+	while (1)
+	{
 
 		//finished with a solution
-		if(field >= 81)
+		if (field >= 81)
 		{
 			solution++;
-			printf("Solution: %zu\n",solution);
+			printf("Solution: %zu\n", solution);
 			printfield();
+
+			if(solution >= 100000)
+				break;
+
 			//start working on the last field again
-			while(1)
+			while (1)
 			{
 				field--;
-				if(sudoku[field/9][field%9].fix)
+				if(field < 0)
+					break;
+				if (sudoku[field / 9][field % 9].fix)
 					continue;
-				if(sudoku[field/9][field%9].num + 1 > 9)
+				if (sudoku[field / 9][field % 9].num + 1 > 9)
 				{
 					sudoku[field / 9][field % 9].num = 0;
 					continue;
 				}
-				sudoku[field/9][field%9].num++;
+				sudoku[field / 9][field % 9].num++;
 				break;
 			}
 		}
 
 		//no more solutions
-		if(field < 0)
+		if (field < 0)
 			break;
 
 		//jump over fix fields
-		if(!reverting)
+		if (!reverting)
 		{
-			if (sudoku[field/9][field%9].fix)
+			if (sudoku[field / 9][field % 9].fix)
 			{
 				field++;
 				continue;
 			}
-		}else{
-			if (sudoku[field/9][field%9].fix)
+		}
+		else
+		{
+			if (sudoku[field / 9][field % 9].fix)
 			{
 				field--;
 				continue;
 			}
 		}
 
-		//we never work on a fixed field
-		assert(!sudoku[field/9][field%9].fix);
-
 		//We increase the current field
-		if(sudoku[field/9][field%9].num + 1 > 9){
+		if (sudoku[field / 9][field % 9].num + 1 > 9)
+		{
 			//somethings fishy
 			reverting = 1;
-			sudoku[field/9][field%9].num = 0;
+			sudoku[field / 9][field % 9].num = 0;
 			field--;
 			continue;
-		}else{
+		}
+		else
+		{
 			reverting = 0;
-			sudoku[field/9][field%9].num++;
+			sudoku[field / 9][field % 9].num++;
 		}
 
 		//this didn't work, lets try again on this field
-		if(checkfield())
+		if (checkfield(field))
 		{
 			reverting = 0;
 			continue;
 		}
-		//looks good, next field
-		else{
+			//looks good, next field
+		else
+		{
 			field++;
 			reverting = 0;
 		}
