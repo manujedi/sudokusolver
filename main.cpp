@@ -1,4 +1,5 @@
 #include <iostream>
+#include <assert.h>
 
 //#define visualize
 
@@ -12,9 +13,9 @@ struct field
 	uint8_t* testing_num;
 };
 
-field sudoku[9][9];
+field sudoku[81];
 
-uint8_t* pos_num;
+uint8_t pos_num[81 * 10];
 
 int checkfield()
 {
@@ -29,15 +30,15 @@ int checkfield()
 		col = 0;
 		for (int j = 0; j < 9; ++j)
 		{
-			if (row & (1 << sudoku[i][j].num))
+			if (row & (1 << sudoku[i * 9 + j].num))
 				return 1;
-			if (sudoku[i][j].num)
-				row |= (1 << sudoku[i][j].num);
+			if (sudoku[i * 9 + j].num)
+				row |= (1 << sudoku[i * 9 + j].num);
 
-			if (col & (1 << sudoku[j][i].num))
+			if (col & (1 << sudoku[i * 9 + j].num))
 				return 1;
-			if (sudoku[j][i].num)
-				col |= (1 << sudoku[j][i].num);
+			if (sudoku[i * 9 + j].num)
+				col |= (1 << sudoku[i * 9 + j].num);
 
 		}
 	}
@@ -51,10 +52,10 @@ int checkfield()
 			{
 				for (int l = 0; l < 3; ++l)
 				{
-					if (subfield & (1 << sudoku[i * 3 + k][j * 3 + l].num))
+					if (subfield & (1 << sudoku[(i * 3 + k) * 9 + (j * 3 + l)].num))
 						return 1;
-					if (sudoku[i * 3 + k][j * 3 + l].num)
-						subfield |= (1 << sudoku[i * 3 + k][j * 3 + l].num);
+					if (sudoku[(i * 3 + k) * 9 + (j * 3 + l)].num)
+						subfield |= (1 << sudoku[(i * 3 + k) * 9 + (j * 3 + l)].num);
 				}
 			}
 		}
@@ -68,34 +69,40 @@ int checkfield(int field)
 	uint16_t row;
 	uint16_t col;
 
-	uint8_t x = field / 9;
-	uint8_t y = field % 9;
+	uint8_t x = field % 9;
+	uint8_t y = field / 9;
 
-	//current row/col
-	row = 0;
+	//col
 	col = 0;
-	for (uint8_t j = 0; j < 9; ++j)
+	for (int i = field % 9; i < 81; i += 9)
 	{
-		if (row & (1 << sudoku[x][j].num) & 0x3FE)	//exclude the zero
+		if (col & (1 << sudoku[i].num) & 0x3FE)
 			return 1;
-		row |= (1 << sudoku[x][j].num);
+		col |= (1 << sudoku[i].num);
+	}
 
-		if (col & (1 << sudoku[j][y].num) & 0x3FE)
+	row = 0;
+	uint8_t start = (field / 9) * 9;
+	for (int i = 0; i < 9; i++)
+	{
+		if (row & (1 << sudoku[start + i].num) & 0x3FE)
 			return 1;
-		col |= (1 << sudoku[j][y].num);
-
+		row |= (1 << sudoku[start + i].num);
 	}
 
 	//the 3x3 fields
 	uint16_t subfield = 0;
 
+	x = (x / 3) * 3;
+	y = (y / 3) * 3;
+
 	for (uint8_t k = 0; k < 3; ++k)
 	{
 		for (uint8_t l = 0; l < 3; ++l)
 		{
-			if (subfield & (1 << sudoku[(x/3) * 3 + k][(y/3) * 3 + l].num) & 0x3FE)
+			if (subfield & (1 << sudoku[(y + k) * 9 + (x + l)].num) & 0x3FE)
 				return 1;
-			subfield |= (1 << sudoku[(x/3) * 3 + k][(y/3) * 3 + l].num);
+			subfield |= (1 << sudoku[(y + k) * 9 + (x + l)].num);
 		}
 	}
 
@@ -117,20 +124,22 @@ void printfield()
 				printf(" | ");
 			else
 				printf(" ");
-			printf("%zu", sudoku[i][j].num);
+			printf("%zu", sudoku[i * 9 + j].num);
 		}
 		std::cout << " |" << std::endl;
 	}
 	printf("-------------------------\n");
 }
 
-void setpos(int field, int num){
+void setpos(int field, int num)
+{
 
-	uint8_t* tmp = &pos_num[field*10];
+	uint8_t* tmp = &pos_num[field * 10];
 	uint16_t helper = 0;
 
 	//store possible numbers
-	while (*tmp != 10){
+	while (*tmp)
+	{
 		helper |= (1 << *tmp);
 		tmp++;
 	}
@@ -139,26 +148,29 @@ void setpos(int field, int num){
 	helper |= (1 << num);
 
 	//reset pointer
-	tmp = &pos_num[field*10];
+	tmp = &pos_num[field * 10];
 
 	for (int i = 1; i < 10; ++i)
 	{
-		if(helper & (1 << i)){
+		if (helper & (1 << i))
+		{
 			*tmp = i;
 			tmp++;
 		}
 	}
-	*tmp = 10;
+	*tmp = 0;
 
 }
 
-void unsetpos(int field, int num){
+void unsetpos(int field, int num)
+{
 
-	uint8_t* tmp = &pos_num[field*10];
+	uint8_t* tmp = &pos_num[field * 10];
 	uint16_t helper = 0;
 
 	//store possible numbers
-	while (*tmp != 10){
+	while (*tmp)
+	{
 		helper |= (1 << *tmp);
 		tmp++;
 	}
@@ -167,87 +179,216 @@ void unsetpos(int field, int num){
 	helper &= ~(1 << num);
 
 	//reset pointer
-	tmp = &pos_num[field*10];
+	tmp = &pos_num[field * 10];
 
 	for (int i = 1; i < 10; ++i)
 	{
-		if(helper & (1 << i)){
+		if (helper & (1 << i))
+		{
 			*tmp = i;
 			tmp++;
 		}
 	}
-	*tmp = 10;
+	*tmp = 0;
+}
+
+int ispos(int field, int num)
+{
+	uint8_t* tmp = &pos_num[field * 10];
+	while (*tmp)
+	{
+		if (num == *tmp)
+			return 1;
+		tmp++;
+	}
+	return 0;
+
 }
 
 //a valid sudoku field is needed, only removes pos
-int precalc_linesrows3x3(){
-	size_t row;
-	size_t col;
-	size_t subfield;
+int precalc_linesrows3x3(int fix = 1)
+{
+	int rerun = 1;
+	int directfound = 0;
 
-	//every row/col
-	for (int i = 0; i < 9; ++i)
+	while (rerun)
 	{
-		row = 0;
-		col = 0;
-
-		for (int j = 0; j < 9; ++j)
+		rerun = 0;
+		for (int i = 0; i < 81; ++i)
 		{
-			row |= (1 << sudoku[i][j].num);
-			col |= (1 << sudoku[j][i].num);
-		}
-		for (int j = 0; j < 9; ++j)
-		{
-			for (int k = 1; k < 10; ++k)
+			if (sudoku[i].fix || sudoku[i].num)
+				continue;
+			for (int j = 1; j < 10; ++j)
 			{
-				if((row & (1 << k))){
-					unsetpos(i*9+j,k);
-				}
-				if((col & (1 << k))){
-					unsetpos(j*9+i,k);
+				sudoku[i].num = j;
+				if (checkfield(i))
+				{
+					unsetpos(i, j);
 				}
 			}
+			sudoku[i].num = 0;
+		}
+
+		int singlenumber = 0;
+		int num;
+
+		for (int i = 0; i < 81; ++i)
+		{
+			if (sudoku[i].fix || sudoku[i].num)
+				continue;
+			uint8_t* tmp = &pos_num[i * 10];
+			while (*tmp)
+			{
+				singlenumber++;
+				num = *tmp;
+				tmp++;
+			}
+			if (singlenumber == 1)
+			{
+				sudoku[i].num = num;
+				if(fix)
+					sudoku[i].fix = 1;
+				pos_num[i * 10] = 0;
+				rerun = 1;
+				directfound++;
+			}
+			singlenumber = 0;
 		}
 	}
 
-	for (int i = 0; i < 3; ++i)
+#ifdef visualize
+	if(directfound)
 	{
-		for (int j = 0; j < 3; ++j)
-		{
-			subfield = 0;
-			for (int k = 0; k < 3; ++k)
-			{
-				for (int l = 0; l < 3; ++l)
-				{
-					if (subfield & (1 << sudoku[i * 3 + k][j * 3 + l].num))
-						return 1;
-					if (sudoku[i * 3 + k][j * 3 + l].num)
-						subfield |= (1 << sudoku[i * 3 + k][j * 3 + l].num);
-				}
-			}
+		printf("precalc_linesrows3x3: could find %zu numbers direct!\n", directfound);
+		printfield();
+	}
+#endif
 
-			for (int k = 0; k < 3; ++k)
+	return directfound;
+}
+
+int search_missing(int fix = 1)
+{
+	int count = 0;
+
+	uint16_t found;
+	//rows
+	for (int i = 0; i < 9; ++i)
+	{
+		found = 0;
+		//cols in row
+		for (int j = 0; j < 9; ++j)
+		{
+			found |= (1 << sudoku[i * 9 + j].num);
+		}
+		//try every number, if it works more than one time it is not good
+		for (int k = 1; k < 10; ++k)
+		{
+			//the number is missing in the row
+			if (!(found & (1 << k)))
 			{
-				for (int l = 0; l < 3; ++l)
+				int pos_times = 0;
+				//every col
+				for (int j = 0; j < 9; ++j)
 				{
-					for (int m = 1; m < 10; ++m)
+					if (sudoku[i * 9 + j].num != 0)
+						continue;
+					sudoku[i * 9 + j].num = k;
+					if (!checkfield(i * 9 + j))
+						pos_times++;
+					sudoku[i * 9 + j].num = 0;
+				}
+				//we found a valid solution
+				if (pos_times == 1)
+				{
+					count++;
+					for (int j = 0; j < 9; ++j)
 					{
-						if(subfield & (1 << m)){
-							unsetpos((i * 3 + k)*9 + (j * 3 + l), m);
+						if (sudoku[i * 9 + j].num != 0)
+							continue;
+						sudoku[i * 9 + j].num = k;
+						if (!checkfield(i * 9 + j))
+						{
+							if(fix)
+								sudoku[i * 9 + j].fix = 1;
+							break;
 						}
+						sudoku[i * 9 + j].num = 0;
 					}
 				}
 			}
 		}
 	}
-	return 0;
+
+	//cols
+	for (int i = 0; i < 9; ++i)
+	{
+		found = 0;
+		for (int j = 0; j < 9; ++j)
+		{
+			found |= (1 << sudoku[j * 9 + i].num);
+		}
+		for (int k = 1; k < 10; ++k)
+		{
+			if (!(found & (1 << k)))
+			{
+				int pos_times = 0;
+				for (int j = 0; j < 9; ++j)
+				{
+					if (sudoku[j * 9 + i].num != 0)
+						continue;
+					sudoku[j * 9 + i].num = k;
+					if (!checkfield(j * 9 + i))
+						pos_times++;
+					sudoku[j * 9 + i].num = 0;
+				}
+				if (pos_times == 1)
+				{
+					count++;
+					for (int j = 0; j < 9; ++j)
+					{
+						if (sudoku[j * 9 + i].num != 0)
+							continue;
+						sudoku[j * 9 + i].num = k;
+						if (!checkfield(j * 9 + i))
+						{
+							sudoku[j * 9 + i].fix = 1;
+							break;
+						}
+						sudoku[j * 9 + i].num = 0;
+					}
+				}
+			}
+		}
+	}
+#ifdef visualize
+	if(count)
+	{
+		printf("search_missing: could find %zu numbers direct!\n", count);
+		printfield();
+	}
+#endif
+	return count;
 }
 
 int main()
 {
+	/*int input[9][9] = {
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0}
+	};*/
 
 	//hard to brute force
-	int input[9][9] = {
+	/*int input[9][9] = {
 			{0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 3, 0, 8, 5},
 			{0, 0, 1, 0, 2, 0, 0, 0, 0},
@@ -259,7 +400,37 @@ int main()
 			{5, 0, 0, 0, 0, 0, 0, 7, 3},
 			{0, 0, 2, 0, 1, 0, 0, 0, 0},
 			{0, 0, 0, 0, 4, 0, 0, 0, 9}
-	};
+	};*/
+
+	//hard to bruteforce
+	/*int input[9][9] = {
+			{0, 0, 0, 0, 0, 0, 0, 0, 1},
+			{0, 0, 0, 0, 0, 0, 0, 2, 3},
+			{0, 0, 4, 0, 0, 5, 0, 0, 0},
+
+			{0, 0, 0, 1, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 3, 0, 6, 0, 0},
+			{0, 0, 7, 0, 0, 0, 5, 8, 0},
+
+			{0, 0, 0, 0, 6, 7, 0, 0, 0},
+			{0, 1, 0, 0, 0, 4, 0, 0, 0},
+			{5, 2, 0, 0, 0, 0, 0, 0, 0}
+	};*/
+
+	//hard for humans
+	/*int input[9][9] = {
+			{8, 5, 0, 0, 0, 2, 4, 0, 0},
+			{7, 2, 0, 0, 0, 0, 0, 0, 9},
+			{0, 0, 4, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 1, 0, 7, 0, 0, 2},
+			{3, 0, 5, 0, 0, 0, 9, 0, 0},
+			{0, 4, 0, 0, 0, 0, 0, 0, 0},
+
+			{0, 0, 0, 0, 8, 0, 0, 7, 0},
+			{0, 1, 7, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 3, 6, 0, 4, 0}
+	};*/
 
 	//wiki example 24 solutions
 /*	int input[9][9] = {
@@ -275,23 +446,9 @@ int main()
 			{0, 0, 0, 4, 1, 9, 0, 0, 5},
 			{0, 0, 0, 0, 8, 0, 0, 7, 9}
 	};*/
-/*
-	int input[9][9] = {
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0, 0}
-	};*/
 
 	//should produce 2208 solutions
-/*	int input[9][9] = {
+	int input[9][9] = {
 			{0, 0, 0, 7, 0, 0, 0, 0, 0},
 			{1, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 4, 3, 0, 2, 7, 0},
@@ -303,6 +460,51 @@ int main()
 			{0, 0, 0, 0, 8, 1, 0, 0, 4},
 			{0, 0, 2, 0, 0, 0, 0, 5, 0},
 			{0, 4, 0, 0, 0, 0, 0, 0, 0}
+	};
+
+	//very simple (for testing precalc_linesrows3x3)
+/*	int input[9][9] = {
+		{5, 1, 7, 6, 0, 0, 0, 3, 4},
+		{2, 8, 9, 0, 0, 4, 0, 0, 0},
+		{3, 4, 6, 2, 0, 5, 0, 9, 0},
+
+		{6, 0, 2, 0, 0, 0, 0, 1, 0},
+		{0, 3, 8, 0, 0, 6, 0, 4, 7},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+		{0, 9, 0, 0, 0, 0, 0, 7, 8},
+		{7, 0, 3, 4, 0, 0, 5, 6, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0}
+	};*/
+
+	//simple (for testing precalc_linesrows3x3)
+/*	int input[9][9] = {
+			{9, 2, 0, 6, 1, 0, 0, 0, 0},
+			{4, 6, 0, 0, 0, 3, 0, 0, 0},
+			{0, 1, 0, 7, 0, 0, 9, 0, 6},
+
+			{0, 5, 0, 0, 7, 8, 2, 0, 0},
+			{6, 7, 2, 0, 0, 0, 5, 8, 0},
+			{0, 0, 0, 2, 0, 6, 0, 0, 3},
+
+			{0, 9, 6, 3, 2, 0, 0, 1, 4},
+			{7, 0, 0, 0, 0, 0, 6, 0, 0},
+			{0, 0, 1, 0, 6, 4, 0, 9, 0}
+	};*/
+
+	//find missing test (should find two 8)
+/*	int input[9][9] = {
+			{1, 2, 3, 4, 5, 6, 0, 0, 0},
+			{4, 0, 0, 0, 0, 0, 0, 0, 0},
+			{5, 0, 0, 0, 0, 0, 0, 0, 0},
+
+			{2, 0, 0, 0, 0, 0, 0, 0, 0},
+			{7, 0, 0, 0, 0, 0, 0, 0, 0},
+			{6, 0, 0, 0, 0, 0, 0, 8, 0},
+
+			{0, 0, 0, 8, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0, 8, 0, 0}
 	};*/
 
 	//copy input
@@ -310,59 +512,72 @@ int main()
 	{
 		for (int y = 0; y < 9; ++y)
 		{
-			sudoku[x][y].num = input[x][y];
-			if (sudoku[x][y].num)
-				sudoku[x][y].fix = 1;
+			sudoku[y * 9 + x].num = input[y][x];
+			if (sudoku[y * 9 + x].num)
+				sudoku[y * 9 + x].fix = 1;
 		}
 	}
 
 
 	if (checkfield())
 	{
-		std::cout << "error, input not valid" << std::endl;
+		printf("error, input not valid\n");
 		exit(1);
 	}
 
 	int field = 0;
 	int reverting = 0;
 	size_t solution = 0;
-
-	//number ten is used for end checking
-	pos_num = (uint8_t*) malloc(81*10* sizeof(uint8_t));
-
-	//init everything with no pos
-	for (uint8_t i = 0; i < 81; ++i)
-	{
-		sudoku[i/9][i%9].testing_num = &pos_num[i*10];
-		pos_num[i*10] = 10;
-	}
+	size_t iterration = 0;
+	size_t backtracks = 0;
+	struct timespec totalstart={0,0}, tstart={0,0}, tend={0,0};
 
 	//every number everywhere possible
 	for (uint8_t i = 0; i < 81; ++i)
 	{
-		sudoku[i/9][i%9].testing_num = &pos_num[i*10];
+		sudoku[i].testing_num = &pos_num[i * 10];
 		for (uint8_t j = 1; j < 11; ++j)
 		{
-			setpos(i,j);
+			setpos(i, j);
 		}
 	}
 
-	precalc_linesrows3x3();
+	clock_gettime(CLOCK_MONOTONIC, &totalstart);
+	clock_gettime(CLOCK_MONOTONIC, &tstart);
+
+	//start to work
+	while (precalc_linesrows3x3() ||
+			search_missing());
+
+	clock_gettime(CLOCK_MONOTONIC, &tend);
+	printf("precalc took about %.9f seconds\n",
+		   ((double)tend.tv_sec + 1.0e-9*tend.tv_nsec) -
+				   ((double)tstart.tv_sec + 1.0e-9*tstart.tv_nsec));
+	clock_gettime(CLOCK_MONOTONIC, &tstart);
 
 	while (1)
 	{
+		iterration++;
+
 #ifdef visualize
 		printfield();
 		printf("\033[13;A");
-		nanosleep((const struct timespec[]){{1L, 0}}, NULL);
+		//nanosleep((const struct timespec[]) {{1L, 0}}, NULL);
 #endif
 
 		//finished with a solution
 		if (field >= 81)
 		{
 			solution++;
-			printf("Solution: %zu              \n", solution);
+			clock_gettime(CLOCK_MONOTONIC, &tend);
+			printf("Solution: %zu  -  %.9f seconds \n", solution,((double)tend.tv_sec + 1.0e-9*tend.tv_nsec) -
+					((double)tstart.tv_sec + 1.0e-9*tstart.tv_nsec));
+			clock_gettime(CLOCK_MONOTONIC, &tstart);
 			printfield();
+			printf("Iterarions: %zu Backtracks: %zu\n", iterration, backtracks);
+			iterration = 0;
+			backtracks = 0;
+
 #ifdef visualize
 			getchar();
 			printf("\033[14;B");
@@ -372,18 +587,18 @@ int main()
 			while (1)
 			{
 				field--;
-				if(field < 0)
+				if (field < 0)
 					break;
-				if (sudoku[field / 9][field % 9].fix)
+				if (sudoku[field].fix)
 					continue;
-				if (*sudoku[field / 9][field % 9].testing_num > 9)
+				if (!*sudoku[field].testing_num)
 				{
-					sudoku[field / 9][field % 9].num = 0;
-					sudoku[field / 9][field % 9].testing_num = &pos_num[field*10];
+					sudoku[field].num = 0;
+					sudoku[field].testing_num = &pos_num[field * 10];
 					continue;
 				}
-				sudoku[field / 9][field % 9].num = *sudoku[field / 9][field % 9].testing_num;
-				sudoku[field / 9][field % 9].testing_num++;
+				sudoku[field].num = *sudoku[field].testing_num;
+				sudoku[field].testing_num++;
 				break;
 			}
 		}
@@ -395,7 +610,7 @@ int main()
 		//jump over fix fields
 		if (!reverting)
 		{
-			if (sudoku[field / 9][field % 9].fix)
+			if (sudoku[field].fix)
 			{
 				field++;
 				continue;
@@ -403,7 +618,7 @@ int main()
 		}
 		else
 		{
-			if (sudoku[field / 9][field % 9].fix)
+			if (sudoku[field].fix)
 			{
 				field--;
 				continue;
@@ -411,21 +626,21 @@ int main()
 		}
 
 		//We increase the current field
-		if (*sudoku[field / 9][field % 9].testing_num > 9)
+		if (*(sudoku[field].testing_num))
 		{
-			//somethings fishy
-			reverting = 1;
-			sudoku[field / 9][field % 9].num = 0;
-			sudoku[field / 9][field % 9].testing_num = &pos_num[field*10];
-			field--;
-			continue;
+			reverting = 0;
+			sudoku[field].num = *sudoku[field].testing_num;
+			sudoku[field].testing_num++;
 		}
 		else
 		{
-			reverting = 0;
-
-			sudoku[field / 9][field % 9].num = *sudoku[field / 9][field % 9].testing_num;
-			sudoku[field / 9][field % 9].testing_num++;
+			//somethings fishy
+			reverting = 1;
+			sudoku[field].num = 0;
+			sudoku[field].testing_num = &pos_num[field * 10];
+			field--;
+			backtracks++;
+			continue;
 		}
 
 		//this didn't work, lets try again on this field
@@ -443,6 +658,8 @@ int main()
 
 	}
 
-	printf("Finished, Solutions found: %zu\n", solution);
+	clock_gettime(CLOCK_MONOTONIC, &tend);
+	printf("Finished, Solutions found: %zu  -  %.9f seconds\n", solution, ((double)tend.tv_sec + 1.0e-9*tend.tv_nsec) -
+			((double)totalstart.tv_sec + 1.0e-9*totalstart.tv_nsec));
 	return 0;
 }
