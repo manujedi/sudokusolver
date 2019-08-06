@@ -1,5 +1,4 @@
 #include <iostream>
-#include <assert.h>
 
 //#define visualize
 
@@ -251,18 +250,20 @@ int precalc_linesrows3x3(int fix = 1)
 				pos_num[i * 10] = 0;
 				rerun = 1;
 				directfound++;
+				//we need to continue as the pos_num could change
+				continue;
 			}
 			singlenumber = 0;
 		}
 	}
 
-#ifdef visualize
+//#ifdef visualize
 	if(directfound)
 	{
 		printf("precalc_linesrows3x3: could find %zu numbers direct!\n", directfound);
 		printfield();
 	}
-#endif
+//#endif
 
 	return directfound;
 }
@@ -361,13 +362,13 @@ int search_missing(int fix = 1)
 			}
 		}
 	}
-#ifdef visualize
+//#ifdef visualize
 	if(count)
 	{
 		printf("search_missing: could find %zu numbers direct!\n", count);
 		printfield();
 	}
-#endif
+//#endif
 	return count;
 }
 
@@ -403,7 +404,7 @@ int main()
 	};*/
 
 	//hard to bruteforce
-	/*int input[9][9] = {
+	int input[9][9] = {
 			{0, 0, 0, 0, 0, 0, 0, 0, 1},
 			{0, 0, 0, 0, 0, 0, 0, 2, 3},
 			{0, 0, 4, 0, 0, 5, 0, 0, 0},
@@ -415,7 +416,7 @@ int main()
 			{0, 0, 0, 0, 6, 7, 0, 0, 0},
 			{0, 1, 0, 0, 0, 4, 0, 0, 0},
 			{5, 2, 0, 0, 0, 0, 0, 0, 0}
-	};*/
+	};
 
 	//hard for humans
 	/*int input[9][9] = {
@@ -448,7 +449,7 @@ int main()
 	};*/
 
 	//should produce 2208 solutions
-	int input[9][9] = {
+	/*int input[9][9] = {
 			{0, 0, 0, 7, 0, 0, 0, 0, 0},
 			{1, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 4, 3, 0, 2, 7, 0},
@@ -460,7 +461,7 @@ int main()
 			{0, 0, 0, 0, 8, 1, 0, 0, 4},
 			{0, 0, 2, 0, 0, 0, 0, 5, 0},
 			{0, 4, 0, 0, 0, 0, 0, 0, 0}
-	};
+	};*/
 
 	//very simple (for testing precalc_linesrows3x3)
 /*	int input[9][9] = {
@@ -562,7 +563,7 @@ int main()
 #ifdef visualize
 		printfield();
 		printf("\033[13;A");
-		//nanosleep((const struct timespec[]) {{1L, 0}}, NULL);
+		nanosleep((const struct timespec[]) {{0L, 200000000L}}, NULL);
 #endif
 
 		//finished with a solution
